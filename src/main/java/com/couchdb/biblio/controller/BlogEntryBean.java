@@ -20,16 +20,13 @@ import javax.faces.event.PhaseId;
 import javax.inject.Inject;
 
 import org.apache.commons.io.IOUtils;
-import org.ektorp.CouchDbConnector;
-import org.ektorp.CouchDbInstance;
-import org.ektorp.http.HttpClient;
-import org.ektorp.http.StdHttpClient;
-import org.ektorp.impl.StdCouchDbConnector;
-import org.ektorp.impl.StdCouchDbInstance;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.DefaultStreamedContent;
 import org.primefaces.model.StreamedContent;
 import org.primefaces.model.UploadedFile;
+
+import ch.carauktion.general.couchdb.CouchDBFile;
+import ch.carauktion.general.couchdb.CouchDBFileService;
 
 import com.couchdb.biblio.ejb.BlogEntryEJB;
 import com.couchdb.biblio.entity.BlogEntry;
@@ -43,15 +40,19 @@ public class BlogEntryBean {
 		System.out.println("*****************init**************");
 	}
 	
+	
 	@Inject
 	private BlogEntryEJB blogEntryEJB;
+	
+	@Inject
+	private CouchDBFileService couchDBFileService ;
 
 	private BlogEntry blogEntry = new BlogEntry();
-	private CouchCBFile file = new CouchCBFile();
+	private CouchDBFile file = new CouchDBFile();
 	
 	
 	public void upload(FileUploadEvent event) {
-		file = new CouchCBFile();
+		file = new CouchDBFile();
 		if(event != null){
         FacesMessage message = new FacesMessage("Succesful", event.getFile().getFileName() + " is uploaded.");
         FacesContext.getCurrentInstance().addMessage(null, message);
@@ -64,9 +65,9 @@ public class BlogEntryBean {
 			    file.setCreatedDate(new Date());
 		        file.setName(fileUpload.getFileName());
 		        file.setUpdatedDate(new Date());
-		        file.setImage(foto);
+		        file.setFile(foto);
+		        file.setMimeType(ch.carauktion.general.couchdb.MimeType.GIF);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
        
@@ -106,46 +107,42 @@ public class BlogEntryBean {
 		blogEntryEJB.deleteBlogEntry(blogEntry);
 	}
 
-	 public StreamedContent getImage() throws IOException {
-		 
-		 HttpClient httpClient = new StdHttpClient.Builder().host("localhost")
-					.port(5984).username("admin").password("password").build();
 
-			CouchDbInstance dbInstance = new StdCouchDbInstance(httpClient);
-			CouchDbConnector db = new StdCouchDbConnector("couchdbImages", dbInstance);
-
-	        FacesContext context = FacesContext.getCurrentInstance();
-
-	        if (context.getCurrentPhaseId() == PhaseId.RENDER_RESPONSE) {
+	public CouchDBFile saveCouchDBFile(CouchDBFile couchDBFile) {
+		CouchDBFile image =   couchDBFileService.saveCouchDBFile(couchDBFile);
+		return image;
+	}
+	
+	public StreamedContent getImage() throws IOException {
+		FacesContext context = FacesContext.getCurrentInstance();
+		 if (context.getCurrentPhaseId() == PhaseId.RENDER_RESPONSE) {
 	            // So, we're rendering the HTML. Return a stub StreamedContent so that it will generate right URL.
 	            return new DefaultStreamedContent();
 	        }
 	        else {
-	            // So, browser is requesting the image. Return a real StreamedContent with the image bytes.
-	            String id = context.getExternalContext().getRequestParameterMap().get("imageId");
-	            CouchCBFile image = db.get(CouchCBFile.class, id);
-	            
-	            return new DefaultStreamedContent(new ByteArrayInputStream(image.getImage()));
+	    String id = context.getExternalContext().getRequestParameterMap().get("imageId");
+        CouchDBFile image =   couchDBFileService.getCouchDBFileById(id);
+            
+       return new DefaultStreamedContent(new ByteArrayInputStream(image.getFile()));
 	        }
-	    }
-
-	public String saveCouchDBFile(CouchCBFile file) {
-		HttpClient httpClient = new StdHttpClient.Builder().host("localhost")
-				.port(5984).username("admin").password("password").build();
-
-		CouchDbInstance dbInstance = new StdCouchDbInstance(httpClient);
-		CouchDbConnector db = new StdCouchDbConnector("couchdbImages", dbInstance);
-
-		db.createDatabaseIfNotExists();
-		db.create(file);
-		return file.getId();
 	}
 
-	public CouchCBFile getFile() {
+	public BlogEntryEJB getBlogEntryEJB() {
+		return blogEntryEJB;
+	}
+
+	public void setBlogEntryEJB(BlogEntryEJB blogEntryEJB) {
+		this.blogEntryEJB = blogEntryEJB;
+	}
+
+	public CouchDBFile getFile() {
 		return file;
 	}
 
-	public void setFile(CouchCBFile file) {
+	public void setFile(CouchDBFile file) {
 		this.file = file;
 	}
+	
+
+	
 }

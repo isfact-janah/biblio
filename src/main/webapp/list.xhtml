@@ -27,7 +27,7 @@
 							<h:outputText value="#{entry.title}" />
 						</f:facet>
 						#{entry.fileid}
-						<p:graphicImage value="#{couchDBImage.image}">
+						<p:graphicImage value="#{blogEntryBean.image}">
 						 <f:param name="imageId" value="#{entry.fileid}" />
 						</p:graphicImage>
 						<h:outputText value="#{i18n.author}: #{entry.author}" />
